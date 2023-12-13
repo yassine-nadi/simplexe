@@ -48,6 +48,7 @@ public class Tab{
 		else {
 			calculatePivotC();
 			calculatePivotL();
+			// Update pivot line
 			newMatrix[getPivotL()][getPivotC()] = 1;
 			for(int j = 0 ; j < oldMatrix.getC() - 1 ; j++) {
 				if(j == getPivotC()) continue;
@@ -55,6 +56,7 @@ public class Tab{
 						oldMatrix.getMatrixValue(getPivotL(), getPivotC()); 
 				newMatrix[getPivotL()][j] = newValue;
 			}
+			// Update other cells
 			for(int i = 0 ; i < oldMatrix.getL(); i++) {
 				if(i == getPivotL()) continue;
 				for(int j = 0 ; j < oldMatrix.getC() - 1 ; j++) {
@@ -66,7 +68,7 @@ public class Tab{
 					newMatrix[i][j] = newValue;
 				}
 			}
-			
+			// calculate PivotC
 			float maxValue = newMatrix[getaL() - 1][0];
 			int pivotC = 0;
 			for(int j = 1  ; j < getaC() ; j++) {
@@ -76,6 +78,7 @@ public class Tab{
 				}
 			}
 			
+			//calculate R
 			for(int i = 0 ; i < getaL() - 1 ; i++) {
 				float newValue = newMatrix[i][getaC() - 2] /
 						newMatrix[i][pivotC]; 
