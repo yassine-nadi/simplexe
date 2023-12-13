@@ -27,63 +27,101 @@ public class Tab{
 		float [][]newMatrix = new float [getaL()][getaC()];
 		if(oldMatrix == null) {
 			// calculate X
-			for(int i = 0 ; i < getcNum() ; i++)
-				for(int j = 0 ; j < getxNum() ; j++) 
-					newMatrix[i][j] = getpMatrix().getMatrixValue(i, j);
+			Thread calculateX = new Thread(() -> {
+				for(int i = 0 ; i < getcNum() ; i++)
+					for(int j = 0 ; j < getxNum() ; j++) 
+						newMatrix[i][j] = getpMatrix().getMatrixValue(i, j);
+			});
+			calculateX.start();
 			// calculate C
-			for(int i = 0 ; i < getcNum() ; i++)
-				newMatrix[i][getaC() - 2] = getpMatrix().getMatrixValue(i, getxNum() + 1);
+			Thread calculateC = new Thread(() -> {
+				for(int i = 0 ; i < getcNum() ; i++)
+					newMatrix[i][getaC() - 2] = getpMatrix().getMatrixValue(i, getxNum() + 1);
+			});
+			calculateC.start();
 			// calculate Z
-			for(int j = 0 ; j < getxNum() ; j++)
-				newMatrix[getaL() - 1][j] = getpMatrix().getMatrixValue(getcNum(), j);
+			Thread calculateZ = new Thread(() -> {
+				for(int j = 0 ; j < getxNum() ; j++)
+					newMatrix[getaL() - 1][j] = getpMatrix().getMatrixValue(getcNum(), j);
+			});
+			calculateZ.start();
 			// calculate E
-			for(int i = 0 , j = getxNum() ; i < getcNum() ; i++, j++)
-				newMatrix[i][j] = getpMatrix().getMatrixValue(i, getxNum());
+			Thread calculateE = new Thread(() -> {
+				for(int i = 0 , j = getxNum() ; i < getcNum() ; i++, j++)
+					newMatrix[i][j] = getpMatrix().getMatrixValue(i, getxNum());
+			});
+			calculateE.start();
 			//Calculate R
-			calculatePivotCFromP();
-			for(int i = 0 ; i < getcNum() ; i++)
-				newMatrix[i][getaC() - 1] = getpMatrix().getMatrixValue(i, getxNum() + 1) / getpMatrix().getMatrixValue(i, getPivotC());
+			Thread calculateR = new Thread(() -> {
+				calculatePivotCFromP();
+				for(int i = 0 ; i < getcNum() ; i++)
+					newMatrix[i][getaC() - 1] = getpMatrix().getMatrixValue(i, getxNum() + 1) / getpMatrix().getMatrixValue(i, getPivotC());
+			});
+			calculateR.start();
+			try {
+				calculateX.join();
+				calculateC.join();
+				calculateZ.join();
+				calculateE.join();
+				calculateR.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			return new Matrix(newMatrix, getaL(), getaC());
 		}
 		else {
+			//Calculate pivot line & column
 			calculatePivotC();
 			calculatePivotL();
 			// Update pivot line
-			newMatrix[getPivotL()][getPivotC()] = 1;
-			for(int j = 0 ; j < oldMatrix.getC() - 1 ; j++) {
-				if(j == getPivotC()) continue;
-				float newValue = oldMatrix.getMatrixValue(getPivotL(), j) /
-						oldMatrix.getMatrixValue(getPivotL(), getPivotC()); 
-				newMatrix[getPivotL()][j] = newValue;
-			}
-			// Update other cells
-			for(int i = 0 ; i < oldMatrix.getL(); i++) {
-				if(i == getPivotL()) continue;
+			Thread updatePivotLine = new Thread(() -> {
+				newMatrix[getPivotL()][getPivotC()] = 1;
 				for(int j = 0 ; j < oldMatrix.getC() - 1 ; j++) {
 					if(j == getPivotC()) continue;
-					float newValue = 
-							oldMatrix.getMatrixValue(i, j) - 
-							(oldMatrix.getMatrixValue(i, getPivotC()) * oldMatrix.getMatrixValue(getPivotL(), j)) / 
+					float newValue = oldMatrix.getMatrixValue(getPivotL(), j) /
 							oldMatrix.getMatrixValue(getPivotL(), getPivotC()); 
-					newMatrix[i][j] = newValue;
+					newMatrix[getPivotL()][j] = newValue;
 				}
+			});
+			updatePivotLine.start();
+			// Update other cells
+			Thread updateOthers = new Thread(() -> {
+				for(int i = 0 ; i < oldMatrix.getL(); i++) {
+					if(i == getPivotL()) continue;
+					for(int j = 0 ; j < oldMatrix.getC() - 1 ; j++) {
+						if(j == getPivotC()) continue;
+						float newValue = 
+								oldMatrix.getMatrixValue(i, j) - 
+								(oldMatrix.getMatrixValue(i, getPivotC()) * oldMatrix.getMatrixValue(getPivotL(), j)) / 
+								oldMatrix.getMatrixValue(getPivotL(), getPivotC()); 
+						newMatrix[i][j] = newValue;
+					}
+				}
+			});
+			updateOthers.start();
+			try {
+				updatePivotLine.join();
+				updateOthers.join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 			// calculate PivotC
 			float maxValue = newMatrix[getaL() - 1][0];
-			int pivotC = 0;
-			for(int j = 1  ; j < getaC() ; j++) {
-				if(newMatrix[getcNum()][j] > maxValue) {
-					maxValue = newMatrix[getcNum()][j];
-					pivotC = j;
+				int pivotC = 0;
+				for(int j = 1  ; j < getaC() ; j++) {
+					if(newMatrix[getcNum()][j] > maxValue) {
+						maxValue = newMatrix[getcNum()][j];
+						pivotC = j;
+					}
 				}
-			}
-			
 			//calculate R
 			for(int i = 0 ; i < getaL() - 1 ; i++) {
 				float newValue = newMatrix[i][getaC() - 2] /
 						newMatrix[i][pivotC]; 
 				newMatrix[i][getaC() - 1] = newValue;
 			}
+			
 			return new Matrix(newMatrix, getaL(), getaC());
 		}
 	}
